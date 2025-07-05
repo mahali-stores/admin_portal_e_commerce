@@ -9,7 +9,6 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Find the AuthController instance
     final AuthController authController = Get.find();
 
     return Drawer(
@@ -17,70 +16,73 @@ class HomeDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: <Widget>[
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.blue,
-            ),
+            decoration: const BoxDecoration(color: Colors.blue),
             child: Text(
               LangKeys.dashboard.tr,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 24),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.people),
-            title: Text(LangKeys.users.tr),
-            onTap: () {
-              Get.back(); // Close drawer first
-              Get.toNamed(AppRoutes.users); // Navigate to Users screen
-            },
+          _buildDrawerItem(
+            icon: Icons.dashboard,
+            title: LangKeys.dashboard.tr,
+            onTap: () => Get.toNamed(AppRoutes.home),
           ),
-          ListTile(
-            leading: const Icon(Icons.people),
-            title: Text(LangKeys.users.tr),
-            onTap: () {
-              Get.back();
-            },
+          _buildDrawerItem(
+            icon: Icons.people,
+            title: LangKeys.users.tr,
+            onTap: () => Get.toNamed(AppRoutes.users),
           ),
-          ListTile(
-            leading: const Icon(Icons.shopping_bag),
-            title: Text(LangKeys.products.tr),
-            onTap: () {
-              Get.back();
-            },
+          const Divider(),
+          _buildDrawerItem(
+            icon: Icons.shopping_bag,
+            title: LangKeys.products.tr,
+            onTap: () => Get.toNamed(AppRoutes.products),
           ),
-          ListTile(
-            leading: const Icon(Icons.receipt_long),
-            title: Text(LangKeys.orders.tr),
-            onTap: () {
-              Get.back();
-            },
+          _buildDrawerItem(
+            icon: Icons.category,
+            title: LangKeys.categories.tr,
+            onTap: () => Get.toNamed(AppRoutes.categories),
           ),
-          ListTile(
-            leading: const Icon(Icons.category),
-            title: Text(LangKeys.categories.tr),
-            onTap: () {
-              Get.back();
-            },
+          _buildDrawerItem(
+            icon: Icons.branding_watermark,
+            title: LangKeys.brands.tr,
+            onTap: () => Get.toNamed(AppRoutes.brands),
           ),
-          ListTile(
-            leading: const Icon(Icons.branding_watermark),
-            title: Text(LangKeys.brands.tr),
-            onTap: () {
-              Get.back();
-            },
+          _buildDrawerItem(
+            icon: Icons.local_offer,
+            title: LangKeys.sales.tr,
+            onTap: () => Get.toNamed(AppRoutes.sales),
+          ),
+          _buildDrawerItem(
+            icon: Icons.receipt_long,
+            title: LangKeys.orders.tr,
+            onTap: () =>
+                Get.snackbar('Info', 'Orders page not implemented yet.'),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
             title: Text(LangKeys.logout.tr),
-            onTap: () {
-              authController.logout();
-            },
+            onTap: () => authController.logout(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: () {
+        // Corrected Logic: Close drawer before navigating.
+        Get.back();
+        onTap();
+      },
     );
   }
 }
