@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/lang_keys.dart';
 import '../../../../core/shared_widgets/loading_overlay.dart';
 import '../../models/brand_model.dart';
 
@@ -15,18 +16,21 @@ class BrandsController extends GetxController {
   void onInit() {
     super.onInit();
     fetchBrands();
-    debounce(searchQuery, (_) => applyFilters(), time: const Duration(milliseconds: 300));
+    debounce(searchQuery, (_) => applyFilters(),
+        time: const Duration(milliseconds: 300));
   }
 
   Future<void> fetchBrands() async {
     try {
       isLoading.value = true;
-      final snapshot = await _firestore.collection('brands').orderBy('name').get();
-      final brandList = snapshot.docs.map((doc) => BrandModel.fromSnapshot(doc)).toList();
+      final snapshot =
+      await _firestore.collection('brands').orderBy('name').get();
+      final brandList =
+      snapshot.docs.map((doc) => BrandModel.fromSnapshot(doc)).toList();
       allBrands.assignAll(brandList);
       applyFilters();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch brands: $e');
+      Get.snackbar(LangKeys.error.tr, '${LangKeys.failedToFetchBrands.tr}: $e');
     } finally {
       isLoading.value = false;
     }
@@ -37,13 +41,14 @@ class BrandsController extends GetxController {
       filteredBrands.assignAll(allBrands);
     } else {
       filteredBrands.assignAll(allBrands
-          .where((brand) => brand.name.toLowerCase().contains(searchQuery.value.toLowerCase()))
+          .where((brand) =>
+          brand.name.toLowerCase().contains(searchQuery.value.toLowerCase()))
           .toList());
     }
   }
 
   Future<void> deleteBrand(String brandId) async {
-    LoadingOverlay.show(message: "Deleting brand...");
+    LoadingOverlay.show(message: LangKeys.deletingBrand.tr);
     try {
       final WriteBatch batch = _firestore.batch();
 
@@ -67,10 +72,10 @@ class BrandsController extends GetxController {
 
       LoadingOverlay.hide();
       await fetchBrands(); // Refresh list
-      Get.snackbar('Success', 'Brand and all associations deleted successfully');
+      Get.snackbar(LangKeys.success.tr, LangKeys.brandDeletedSuccess.tr);
     } catch (e) {
       LoadingOverlay.hide();
-      Get.snackbar('Error', 'Failed to delete brand: $e');
+      Get.snackbar(LangKeys.error.tr, '${LangKeys.failedToDeleteBrand.tr}: $e');
     }
   }
 }

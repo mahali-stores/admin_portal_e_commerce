@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: "admin@admin.com");
   final _passwordController = TextEditingController(text: "admin@123");
+  bool _obscurePassword = true;
 
   final AuthController _authController = Get.find<AuthController>();
 
@@ -64,7 +65,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.shield_moon, size: 60, color: kPrimaryColor),
+                        const Icon(
+                          Icons.shield_moon,
+                          size: 60,
+                          color: kPrimaryColor,
+                        ),
                         const SizedBox(height: kDefaultPadding),
                         Text(
                           LangKeys.loginTitle.tr,
@@ -79,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || !GetUtils.isEmail(value)) {
-                              return 'Please enter a valid email';
+                              return LangKeys.invalidEmail.tr;
                             }
                             return null;
                           },
@@ -87,14 +92,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: kDefaultPadding),
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           decoration: InputDecoration(
                             labelText: LangKeys.password.tr,
                             prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.length < 6) {
-                              return 'Password must be at least 6 characters';
+                              return LangKeys.passwordTooShort.tr;
                             }
                             return null;
                           },
@@ -102,19 +119,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: kDefaultPadding * 2),
                         Obx(
-                              () => SizedBox(
+                          () => SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _authController.isLoggingIn.value ? null : _performLogin,
+                              onPressed: _authController.isLoggingIn.value
+                                  ? null
+                                  : _performLogin,
                               child: _authController.isLoggingIn.value
                                   ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  color: Colors.white,
-                                ),
-                              )
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        color: Colors.white,
+                                      ),
+                                    )
                                   : Text(LangKeys.loginButton.tr.toUpperCase()),
                             ),
                           ),
@@ -126,11 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          const Positioned(
-            top: 24,
-            right: 24,
-            child: LanguageSwitcherWidget(),
-          ),
+          const Positioned(top: 24, right: 24, child: LanguageSwitcherWidget()),
         ],
       ),
     );

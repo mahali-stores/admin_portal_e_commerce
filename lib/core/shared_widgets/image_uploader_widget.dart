@@ -6,14 +6,13 @@ import 'package:image_picker/image_picker.dart';
 import '../constants/lang_keys.dart';
 import '../constants/ui_constants.dart';
 
+// Data class to hold either a file (Uint8List) or a URL (String)
 class ImageSourceData {
-  final dynamic data; // Can be Uint8List (new file) or String (URL)
+  final dynamic data;
   ImageSourceData(this.data);
 }
 
 class ImageUploaderWidget extends StatefulWidget {
-  // This widget now takes the URL controller directly from the parent
-  // to ensure state synchronization.
   final TextEditingController urlController;
   final Function(ImageSourceData?) onFileSelected;
   final String? initialImageUrl;
@@ -30,8 +29,6 @@ class ImageUploaderWidget extends StatefulWidget {
 }
 
 class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
-  // The widget now only manages the state of a selected FILE.
-  // The URL state is managed by the controller passed into the widget.
   ImageSourceData? _selectedFile;
   bool _isLoading = false;
   String? _previewImageUrl;
@@ -39,7 +36,7 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
   @override
   void initState() {
     super.initState();
-    // Set the initial preview from the initial URL
+    // Set the initial preview from the initial URL if available
     if (widget.initialImageUrl != null && widget.initialImageUrl!.isNotEmpty) {
       _previewImageUrl = widget.initialImageUrl;
     }
@@ -53,20 +50,26 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
     super.dispose();
   }
 
+  // Updates the preview when the user types a URL
   void _updatePreviewFromUrl() {
     final url = widget.urlController.text.trim();
     if (url.isNotEmpty && GetUtils.isURL(url)) {
       // If a valid URL is typed, update the preview and clear any selected file.
-      setState(() {
-        _previewImageUrl = url;
-        _selectedFile = null;
-      });
-      widget.onFileSelected(null);
+      if (mounted) {
+        setState(() {
+          _previewImageUrl = url;
+          if (_selectedFile != null) {
+            _selectedFile = null;
+            widget.onFileSelected(null);
+          }
+        });
+      }
     }
   }
 
+  // Picks an image from the gallery
   Future<void> _pickImage() async {
-    setState(() { _isLoading = true; });
+    setState(() => _isLoading = true);
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -75,19 +78,21 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
         final newFileSource = ImageSourceData(imageBytes);
         setState(() {
           _selectedFile = newFileSource;
-          _previewImageUrl = null; // A file is picked, so the URL preview is irrelevant
+          _previewImageUrl = null;
         });
-        // Notify the parent controller of the new file and clear the URL field
         widget.onFileSelected(newFileSource);
         widget.urlController.clear();
       }
     } catch (e) {
-      Get.snackbar(LangKeys.error.tr, "Failed to pick image: $e");
+      Get.snackbar(LangKeys.error.tr, "${LangKeys.failedToPickImage.tr}: $e");
     } finally {
-      setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  // Removes the current image (file or URL)
   void _removeImage() {
     setState(() {
       _selectedFile = null;
@@ -99,14 +104,13 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine what to show in the preview area
     Widget previewContent;
     if (_isLoading) {
       previewContent = const Center(child: CircularProgressIndicator());
     } else if (_selectedFile != null) {
       previewContent = _buildImagePreview(_selectedFile!.data as Uint8List);
     } else if (_previewImageUrl != null && _previewImageUrl!.isNotEmpty) {
-      previewContent = _buildImagePreview(_previewImageUrl as String);
+      previewContent = _buildImagePreview(_previewImageUrl!);
     } else {
       previewContent = _buildImagePicker();
     }
@@ -120,48 +124,61 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
     );
   }
 
+  // Widget to display when an image is selected or a URL is provided
   Widget _buildImagePreview(dynamic imageData) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(kDefaultRadius),
-          child: imageData is String
-              ? Image.network(imageData, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildErrorState())
-              : Image.memory(imageData as Uint8List, fit: BoxFit.cover),
-        ),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(kDefaultRadius),
-            color: Colors.black.withOpacity(0.3),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(kDefaultRadius),
+            child: imageData is String
+                ? Image.network(imageData, fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => _buildErrorState())
+                : Image.memory(imageData as Uint8List, fit: BoxFit.cover),
           ),
         ),
+        // Overlay with action buttons
         Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.edit, size: 16),
-                label: Text(LangKeys.changeImage.tr),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.9),
-                  foregroundColor: kTextColor,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(kDefaultRadius),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: Text(LangKeys.changeImage.tr),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.9),
+                    foregroundColor: kTextColor,
+                  ),
                 ),
-              ),
-              const SizedBox(width: kDefaultPadding / 2),
-              IconButton(
-                onPressed: _removeImage,
-                icon: const Icon(Icons.delete_forever, color: Colors.white),
-                style: IconButton.styleFrom(backgroundColor: kErrorColor.withOpacity(0.8)),
-              ),
-            ],
+                const SizedBox(width: kDefaultPadding / 2),
+                IconButton(
+                  onPressed: _removeImage,
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  tooltip: LangKeys.removeImage.tr,
+                  style: IconButton.styleFrom(
+                      backgroundColor: kErrorColor.withOpacity(0.8)),
+                ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
+  // Widget to display when no image is selected
   Widget _buildImagePicker() {
     return GestureDetector(
       onTap: _pickImage,
@@ -173,21 +190,25 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
         dashPattern: const [6, 6],
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(kDefaultRadius),
           ),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.cloud_upload_outlined, size: 50, color: kSecondaryTextColor),
+                const Icon(Icons.cloud_upload_outlined,
+                    size: 50, color: kSecondaryTextColor),
                 const SizedBox(height: kDefaultPadding),
-                Text(LangKeys.uploadImage.tr, style: Theme.of(context).textTheme.titleMedium),
+                Text(LangKeys.uploadImage.tr, style: Get.textTheme.titleMedium),
                 const SizedBox(height: kDefaultPadding / 2),
-                Text(
-                  LangKeys.uploadInstructions.tr,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: kDefaultPadding),
+                  child: Text(
+                    LangKeys.uploadInstructions.tr,
+                    style: Get.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),
@@ -197,6 +218,7 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
     );
   }
 
+  // The URL input field section
   Widget _buildUrlInputField() {
     return Column(
       children: [
@@ -205,7 +227,7 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
             const Expanded(child: Divider()),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(LangKeys.orEnterUrl.tr, style: Theme.of(context).textTheme.bodyMedium),
+              child: Text(LangKeys.orEnterUrl.tr, style: Get.textTheme.bodyMedium),
             ),
             const Expanded(child: Divider()),
           ],
@@ -215,7 +237,8 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
           controller: widget.urlController,
           decoration: InputDecoration(
             labelText: LangKeys.imageUrl.tr,
-            hintText: 'https://...',
+            hintText: LangKeys.imageUrlHint.tr,
+            prefixIcon: const Icon(Icons.link),
           ),
           validator: (value) {
             if (value != null && value.isNotEmpty && !GetUtils.isURL(value)) {
@@ -228,19 +251,21 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget> {
     );
   }
 
+  // Widget to display in case of a network image error
   Widget _buildErrorState() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(kDefaultRadius),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: kErrorColor, size: 40),
-            SizedBox(height: 8),
-            Text("Could not load image", style: TextStyle(color: kErrorColor)),
+            const Icon(Icons.error_outline, color: kErrorColor, size: 40),
+            const SizedBox(height: 8),
+            Text(LangKeys.couldNotLoadImage.tr,
+                style: const TextStyle(color: kErrorColor)),
           ],
         ),
       ),

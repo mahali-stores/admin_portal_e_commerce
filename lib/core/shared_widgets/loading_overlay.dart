@@ -14,10 +14,6 @@ class LoadingOverlay {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(kDefaultRadius),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 10)
-              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

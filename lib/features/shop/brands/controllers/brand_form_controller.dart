@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/lang_keys.dart';
 import '../../../../core/constants/ui_constants.dart';
 import '../../../../core/services/storage/storage_service_interface.dart';
 import '../../../../core/shared_widgets/image_uploader_widget.dart';
@@ -22,8 +23,7 @@ class BrandFormController extends GetxController {
   final urlController = TextEditingController(); // Manages the URL text field
 
   // State management
-  final Rxn<ImageSourceData> selectedImageFile =
-      Rxn<ImageSourceData>(); // For file uploads only
+  final Rxn<ImageSourceData> selectedImageFile = Rxn<ImageSourceData>();
   Rx<BrandModel?> brandToEdit = Rx<BrandModel?>(null);
 
   @override
@@ -39,7 +39,6 @@ class BrandFormController extends GetxController {
     nameController.text = brand.name;
     descriptionController.text = brand.description ?? '';
     if (brand.logoUrl.isNotEmpty) {
-      selectedImageFile.value = ImageSourceData(brand.logoUrl);
       urlController.text = brand.logoUrl;
     }
   }
@@ -55,14 +54,14 @@ class BrandFormController extends GetxController {
   Future<void> saveBrand() async {
     if (!formKey.currentState!.validate()) return;
 
-    LoadingOverlay.show(message: "Saving brand...");
+    LoadingOverlay.show(message: LangKeys.savingBrand.tr);
     try {
-      String finalLogoUrl = '';
+      String finalLogoUrl = brandToEdit.value?.logoUrl ?? '';
       final imageFile = selectedImageFile.value;
       final manualUrl = urlController.text.trim();
 
       if (imageFile != null && imageFile.data is Uint8List) {
-        // Priority 1: An image file was uploaded.
+        // Priority 1: A new image file was uploaded.
         final imageData = imageFile.data as Uint8List;
         String? uploadedUrl = await _storageService.uploadImage(
           path: 'brands/',
@@ -70,13 +69,15 @@ class BrandFormController extends GetxController {
           fileName: 'brand_${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
 
-        if (uploadedUrl == null) throw Exception("Image upload failed.");
+        if (uploadedUrl == null) throw Exception(LangKeys.imageUploadFailed.tr);
         finalLogoUrl = uploadedUrl;
       } else if (manualUrl.isNotEmpty && Validators.isValidUrl(manualUrl)) {
         // Priority 2: No file, but a valid URL was entered.
         finalLogoUrl = manualUrl;
+      } else if (manualUrl.isEmpty && imageFile == null) {
+        // Priority 3: Both fields are empty, so clear the logo.
+        finalLogoUrl = '';
       }
-      // If neither is true, the URL remains empty.
 
       final brandData = {
         'name': nameController.text.trim(),
@@ -96,10 +97,10 @@ class BrandFormController extends GetxController {
       LoadingOverlay.hide();
       Get.back(result: true);
       Get.snackbar(
-        'Success',
+        LangKeys.success.tr,
         brandToEdit.value != null
-            ? 'Brand updated successfully'
-            : 'Brand added successfully',
+            ? LangKeys.brandUpdatedSuccess.tr
+            : LangKeys.brandAddedSuccess.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: kAccentColor,
         colorText: Colors.white,
@@ -107,8 +108,8 @@ class BrandFormController extends GetxController {
     } catch (e) {
       LoadingOverlay.hide();
       Get.snackbar(
-        'Error',
-        'Failed to save brand: $e',
+        LangKeys.error.tr,
+        '${LangKeys.failedToSaveBrand.tr}: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: kErrorColor,
         colorText: Colors.white,

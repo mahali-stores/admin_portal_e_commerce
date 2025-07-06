@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,7 +28,7 @@ class AuthController extends GetxController {
     if (user == null) {
       Get.offAllNamed(AppRoutes.login);
     } else {
-      LoadingOverlay.show(message: "Verifying user...");
+      LoadingOverlay.show(message: LangKeys.verifyingUser.tr);
       if (await _isAdmin(user.uid)) {
         LoadingOverlay.hide();
         Get.offAllNamed(AppRoutes.home);
