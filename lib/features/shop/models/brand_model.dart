@@ -1,3 +1,7 @@
+// features/shop/models/brand_model.dart
+// This is the data model for a Brand. It's a simple class that mirrors
+// the structure of your 'brands' collection in Firestore.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BrandModel {

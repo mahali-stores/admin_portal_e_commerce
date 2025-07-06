@@ -1,3 +1,4 @@
+
 class LangKeys {
   static const loginTitle = "login_title";
   static const email = "email";
@@ -54,10 +55,16 @@ class LangKeys {
   static const sku = "sku";
   static const variantImages = "variant_images";
   static const noProductsFound = "no_products_found";
+
   static const uploadImage = "upload_image";
+  static const changeImage = "change_image";
+  static const removeImage = "remove_image";
   static const imageUrl = "image_url";
   static const orEnterUrl = "or_enter_url";
   static const invalidUrl = "invalid_url";
+  static const uploadInstructions = "upload_instructions";
+  static const imageUploadFailed = "image_upload_failed";
+
   static const addSale = "add_sale";
   static const editSale = "edit_sale";
   static const saleName = "sale_name";

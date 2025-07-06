@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants/lang_keys.dart';
 import '../constants/ui_constants.dart';
-import '../services/storage_service.dart';
 
 class ImagePickerWidget extends StatefulWidget {
   final Function(dynamic imageData) onImageSelected;

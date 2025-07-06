@@ -1,22 +1,27 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/constants/lang_keys.dart';
-import '../../../../core/services/storage_service.dart';
+import '../../../../core/constants/ui_constants.dart';
+import '../../../../core/services/storage/storage_service_interface.dart';
+import '../../../../core/shared_widgets/image_uploader_widget.dart';
+import '../../../../core/shared_widgets/loading_overlay.dart';
+import '../../../../core/utils/validators.dart';
 import '../../models/category_model.dart';
 
 class CategoryFormController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final StorageService _storageService = Get.find<StorageService>();
+  final IStorageService _storageService = Get.find<IStorageService>();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
+  // Form field controllers
   final nameController = TextEditingController();
   final descriptionController = TextEditingController();
+  final urlController = TextEditingController(); // Manages the URL text field directly
 
-  final RxBool isLoading = false.obs;
-  // --- UPDATED: Holds either a String (URL) or Uint8List (new image data) ---
-  final Rx<dynamic> selectedImageData = Rx<dynamic>(null);
+  // State management
+  final Rxn<ImageSourceData> selectedImageFile = Rxn<ImageSourceData>(); // Only for file uploads
   final Rxn<String> parentCategoryId = Rxn<String>();
   final RxList<CategoryModel> availableParentCategories = <CategoryModel>[].obs;
   Rx<CategoryModel?> categoryToEdit = Rx<CategoryModel?>(null);
@@ -31,10 +36,9 @@ class CategoryFormController extends GetxController {
     }
   }
 
-  // ... fetchParentCategories() remains the same ...
   Future<void> fetchParentCategories() async {
     try {
-      final snapshot = await _firestore.collection('categories').get();
+      final snapshot = await _firestore.collection('categories').orderBy('name').get();
       final categories = snapshot.docs.map((doc) => CategoryModel.fromSnapshot(doc)).toList();
       if (categoryToEdit.value != null) {
         categories.removeWhere((cat) => cat.id == categoryToEdit.value!.id);
@@ -45,16 +49,21 @@ class CategoryFormController extends GetxController {
     }
   }
 
-
   void _loadCategoryData(CategoryModel category) {
-    nameController.text = category.name;
+    nameController.text = category.name.replaceAll('— ', '');
     descriptionController.text = category.description ?? '';
-    selectedImageData.value = category.imageUrl;
+    if (category.imageUrl != null && category.imageUrl!.isNotEmpty) {
+      selectedImageFile.value = ImageSourceData(category.imageUrl);
+      urlController.text = category.imageUrl!;
+    }
     parentCategoryId.value = category.parentCategoryId;
   }
 
-  void onImageSelected(dynamic data) {
-    selectedImageData.value = data;
+  void onFileSelected(ImageSourceData? data) {
+    selectedImageFile.value = data;
+    if (data != null) {
+      urlController.clear();
+    }
   }
 
   void onParentCategoryChanged(String? newId) {
@@ -66,58 +75,65 @@ class CategoryFormController extends GetxController {
       return;
     }
 
-    isLoading.value = true;
+    LoadingOverlay.show(message: "Saving category...");
     try {
-      String imageUrl = '';
+      String finalImageUrl = '';
+      final imageFile = selectedImageFile.value;
+      final manualUrl = urlController.text.trim();
 
-      // --- ADDED TIMEOUT TO IMAGE UPLOAD ---
-      if (selectedImageData.value is Uint8List) {
-        // If upload takes more than 20 seconds, it will throw an error.
-        String? uploadedUrl = await _storageService
-            .uploadImageData('categories/', selectedImageData.value)
-            .timeout(const Duration(seconds: 20));
+      if (imageFile != null && imageFile.data is Uint8List) {
+        // Priority 1: An image file has been uploaded.
+        final imageData = imageFile.data as Uint8List;
+        String? uploadedUrl = await _storageService.uploadImage(
+            path: 'categories/',
+            imageData: imageData,
+            fileName: 'category_${DateTime.now().millisecondsSinceEpoch}.jpg'
+        ).timeout(const Duration(seconds: 30));
 
-        if (uploadedUrl == null) {
-          throw('Image upload returned null.'); // Manually throw error to be caught
-        }
-        imageUrl = uploadedUrl;
-      } else if (selectedImageData.value is String) {
-        imageUrl = selectedImageData.value;
+        if (uploadedUrl == null) throw Exception("Image upload failed or timed out.");
+        finalImageUrl = uploadedUrl;
+
+      } else if (manualUrl.isNotEmpty && Validators.isValidUrl(manualUrl)) {
+        // Priority 2: No file, but a valid URL has been entered manually.
+        finalImageUrl = manualUrl;
       }
 
       final categoryData = {
         'name': nameController.text.trim(),
         'description': descriptionController.text.trim(),
-        'imageUrl': imageUrl,
+        'imageUrl': finalImageUrl,
         'parentCategoryId': parentCategoryId.value,
       };
 
-      // --- ADDED TIMEOUT TO FIRESTORE WRITE ---
       if (categoryToEdit.value != null) {
-        await _firestore
-            .collection('categories')
-            .doc(categoryToEdit.value!.id)
-            .update(categoryData)
-            .timeout(const Duration(seconds: 15));
+        await _firestore.collection('categories').doc(categoryToEdit.value!.id).update(categoryData);
       } else {
-        await _firestore
-            .collection('categories')
-            .add(categoryData)
-            .timeout(const Duration(seconds: 15));
+        await _firestore.collection('categories').add(categoryData);
       }
 
+      LoadingOverlay.hide();
       Get.back(result: true);
       Get.snackbar(
-        'Success',
-        categoryToEdit.value != null ? 'Category updated' : 'Category added',
-        snackPosition: SnackPosition.BOTTOM,
+          'Success',
+          categoryToEdit.value != null ? 'Category updated' : 'Category added',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: kAccentColor,
+          colorText: Colors.white
       );
     } catch (e) {
-      // This catch block will now also handle TimeoutExceptions
-      Get.snackbar('Error', 'Failed to save category: $e');
-    } finally {
-      // This will now always be called, even if a request hangs and times out.
-      isLoading.value = false;
+      LoadingOverlay.hide();
+      Get.snackbar('Error', 'Failed to save category: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: kErrorColor,
+          colorText: Colors.white);
     }
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    urlController.dispose();
+    super.onClose();
   }
 }

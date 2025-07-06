@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/shared_widgets/loading_overlay.dart';
 import '../../models/brand_model.dart';
 
 class BrandsController extends GetxController {
@@ -24,7 +24,7 @@ class BrandsController extends GetxController {
       final snapshot = await _firestore.collection('brands').orderBy('name').get();
       final brandList = snapshot.docs.map((doc) => BrandModel.fromSnapshot(doc)).toList();
       allBrands.assignAll(brandList);
-      applyFilters(); // Initially, show all brands
+      applyFilters();
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch brands: $e');
     } finally {
@@ -43,35 +43,33 @@ class BrandsController extends GetxController {
   }
 
   Future<void> deleteBrand(String brandId) async {
-    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-
+    LoadingOverlay.show(message: "Deleting brand...");
     try {
       final WriteBatch batch = _firestore.batch();
 
-      // 1. Find all products associated with this brand
+      // 1. Find all products associated with this brand.
       final productsSnapshot = await _firestore
           .collection('products')
-      // CORRECTED SYNTAX:
           .where('brandId', isEqualTo: brandId)
           .get();
 
-      // 2. For each product, update its brandId to null
+      // 2. For each product, update its brand field to null.
       for (final doc in productsSnapshot.docs) {
-        batch.update(doc.reference, {'brandId': null});
+        batch.update(doc.reference, {'brandId': null, 'brand': null});
       }
 
-      // 3. Delete the brand document itself
+      // 3. Delete the brand document itself.
       final brandRef = _firestore.collection('brands').doc(brandId);
       batch.delete(brandRef);
 
-      // 4. Commit all operations as a single batch
+      // 4. Commit all operations atomically.
       await batch.commit();
 
-      Get.back(); // Close loading dialog
+      LoadingOverlay.hide();
       await fetchBrands(); // Refresh list
       Get.snackbar('Success', 'Brand and all associations deleted successfully');
     } catch (e) {
-      Get.back(); // Close loading dialog
+      LoadingOverlay.hide();
       Get.snackbar('Error', 'Failed to delete brand: $e');
     }
   }

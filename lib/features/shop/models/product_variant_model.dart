@@ -1,9 +1,14 @@
+// features/shop/models/product_variant_model.dart
+// This model represents a specific variant of a product, such as a different
+// color or size. It is stored in a separate 'productVariants' collection in Firestore,
+// linked by the 'productId'.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductVariantModel {
   final String id;
   final String productId;
-  final Map<String, String> attributes;
+  final Map<String, String> attributes; // e.g., {'color': 'Red', 'size': 'M'}
   final double price;
   final double? salePrice;
   final String? sku;

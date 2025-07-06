@@ -1,8 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/lang_keys.dart';
+import '../../../core/constants/ui_constants.dart';
+import '../../../core/shared_widgets/loading_overlay.dart';
 import '../../../core/utils/app_routes.dart';
 
 class AuthController extends GetxController {
@@ -21,19 +24,22 @@ class AuthController extends GetxController {
 
   void _handleAuthChanged(User? user) async {
     // A small delay to allow the widget tree to settle before navigation.
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 500));
 
     if (user == null) {
       Get.offAllNamed(AppRoutes.login);
     } else {
+      LoadingOverlay.show(message: "Verifying user...");
       if (await _isAdmin(user.uid)) {
+        LoadingOverlay.hide();
         Get.offAllNamed(AppRoutes.home);
       } else {
+        LoadingOverlay.hide();
         Get.snackbar(
           LangKeys.error.tr,
           LangKeys.notAdmin.tr,
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
+          backgroundColor: kErrorColor,
           colorText: Colors.white,
         );
         await logout();
@@ -44,17 +50,13 @@ class AuthController extends GetxController {
   Future<bool> _isAdmin(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists && doc.data()?['role'] == 'admin') {
-        return true;
-      }
-      return false;
+      return doc.exists && doc.data()?['role'] == 'admin';
     } catch (e) {
-      print("Error checking admin status: $e");
+      debugPrint("Error checking admin status: $e");
       return false;
     }
   }
 
-  // The login method now takes email and password as arguments
   Future<void> login(String email, String password) async {
     isLoggingIn.value = true;
     try {
@@ -68,11 +70,10 @@ class AuthController extends GetxController {
         LangKeys.error.tr,
         e.message ?? LangKeys.loginFailed.tr,
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
+        backgroundColor: kErrorColor,
         colorText: Colors.white,
       );
     } finally {
-      // We no longer need to clear controllers here
       isLoggingIn.value = false;
     }
   }
