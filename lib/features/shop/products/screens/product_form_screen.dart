@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
@@ -17,67 +17,83 @@ class ProductFormScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProductFormController controller = Get.put(ProductFormController());
-    // Ensure dependent controllers are ready
     Get.put(BrandsController());
     Get.put(CategoriesController());
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(controller.productToEdit.value == null ? LangKeys.addProduct.tr : LangKeys.editProduct.tr),
+        title: Obx(() => Text(controller.productToEdit.value == null
+            ? LangKeys.addProduct.tr
+            : LangKeys.editProduct.tr)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(kDefaultPadding),
-        child: Form(
-          key: controller.formKey,
-          child: LayoutBuilder(builder: (context, constraints) {
-            // Use a responsive two-column layout on wider screens
-            if (constraints.maxWidth > 900) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        _buildBasicInfoCard(controller),
-                        _buildVariantsCard(controller),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: kDefaultPadding),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      children: [
-                        _buildStatusCard(controller),
-                        _buildCategorizationCard(controller),
-                        _buildImageCard(controller),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              // Use a single-column layout on narrower screens
-              return Column(
-                children: [
-                  _buildBasicInfoCard(controller),
-                  _buildStatusCard(controller),
-                  _buildCategorizationCard(controller),
-                  _buildImageCard(controller),
-                  _buildVariantsCard(controller),
-                ],
-              );
-            }
-          }),
+      body: Center(
+        child: SizedBox(
+          width: 1200,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(kDefaultPadding),
+            child: Form(
+              key: controller.formKey,
+              child: LayoutBuilder(builder: (context, constraints) {
+                if (constraints.maxWidth > 900) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            _buildBasicInfoCard(controller),
+                            _buildVariantsCard(controller),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: kDefaultPadding),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          children: [
+                            _buildStatusCard(controller),
+                            _buildCategorizationCard(controller),
+                            _buildImageCard(controller),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      _buildBasicInfoCard(controller),
+                      _buildStatusCard(controller),
+                      _buildCategorizationCard(controller),
+                      _buildImageCard(controller),
+                      _buildVariantsCard(controller),
+                    ],
+                  );
+                }
+              }),
+            ),
+          ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(kDefaultPadding),
-        child: ElevatedButton.icon(
-          icon: const Icon(Icons.save_alt_outlined),
-          label: Text(LangKeys.save.tr.toUpperCase()),
-          onPressed: controller.saveProduct,
+      bottomNavigationBar: BottomAppBar(
+        child: Padding(
+          padding: const EdgeInsets.all(kDefaultPadding / 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text(LangKeys.cancel.tr),
+              ),
+              const SizedBox(width: kDefaultPadding),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.save_alt_outlined),
+                label: Text(LangKeys.save.tr.toUpperCase()),
+                onPressed: controller.saveProduct,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -85,7 +101,7 @@ class ProductFormScreen extends StatelessWidget {
 
   Widget _buildBasicInfoCard(ProductFormController controller) {
     return FormSectionCard(
-      title: 'Basic Information',
+      title: LangKeys.basicInformation.tr,
       child: Column(
         children: [
           TextFormField(
@@ -96,7 +112,8 @@ class ProductFormScreen extends StatelessWidget {
           const SizedBox(height: kDefaultPadding),
           TextFormField(
             controller: controller.descriptionController,
-            decoration: InputDecoration(labelText: LangKeys.productDescription.tr),
+            decoration:
+            InputDecoration(labelText: LangKeys.productDescription.tr),
             maxLines: 6,
             minLines: 3,
           ),
@@ -107,10 +124,10 @@ class ProductFormScreen extends StatelessWidget {
 
   Widget _buildStatusCard(ProductFormController controller) {
     return FormSectionCard(
-      title: 'Status',
+      title: LangKeys.status.tr,
       child: Obx(
             () => SwitchListTile(
-          title: const Text('Featured Product'),
+          title: Text(LangKeys.featuredProduct.tr),
           value: controller.isFeatured.value,
           onChanged: (val) => controller.isFeatured.value = val,
           contentPadding: EdgeInsets.zero,
@@ -124,7 +141,7 @@ class ProductFormScreen extends StatelessWidget {
     final CategoriesController categoriesController = Get.find();
 
     return FormSectionCard(
-      title: 'Categorization',
+      title: LangKeys.categorization.tr,
       child: Column(
         children: [
           Obx(
@@ -132,7 +149,9 @@ class ProductFormScreen extends StatelessWidget {
               value: controller.selectedBrand.value,
               hint: Text(LangKeys.productBrand.tr),
               onChanged: (val) => controller.selectedBrand.value = val,
-              items: brandsController.allBrands.map((b) => DropdownMenuItem(value: b, child: Text(b.name))).toList(),
+              items: brandsController.allBrands
+                  .map((b) => DropdownMenuItem(value: b, child: Text(b.name)))
+                  .toList(),
               validator: (v) => v == null ? LangKeys.fieldRequired.tr : null,
               decoration: InputDecoration(labelText: LangKeys.productBrand.tr),
             ),
@@ -142,23 +161,41 @@ class ProductFormScreen extends StatelessWidget {
                 () => MultiSelectDialogField<CategoryModel>(
               buttonText: Text(LangKeys.productCategories.tr),
               title: Text(LangKeys.selectCategories.tr),
-              items: categoriesController.categories.map((c) => MultiSelectItem(c, c.name)).toList(),
-              listType: MultiSelectListType.CHIP,
+              items: categoriesController.flattenedCategoriesForDisplay
+                  .map((c) => MultiSelectItem(c, c.name))
+                  .toList(),
+              listType: MultiSelectListType.LIST,
               onConfirm: (values) {
                 controller.selectedCategories.value = values;
               },
               initialValue: controller.selectedCategories.toList(),
-              chipDisplay: MultiSelectChipDisplay(
-                onTap: (value) {
-                  controller.selectedCategories.remove(value);
-                },
-              ),
+              chipDisplay: MultiSelectChipDisplay.none(),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300, width: 1),
                 borderRadius: BorderRadius.circular(kDefaultRadius),
               ),
+              selectedItemsTextStyle:
+              TextStyle(color: Get.theme.primaryColor),
             ),
           ),
+          Obx(() {
+            if (controller.selectedCategories.isEmpty) return const SizedBox();
+            return Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Wrap(
+                spacing: 6.0,
+                runSpacing: 6.0,
+                children: controller.selectedCategories
+                    .map((item) => Chip(
+                  label: Text(item.name.replaceAll(RegExp(r'—\s*'), '')),
+                  onDeleted: () {
+                    controller.selectedCategories.remove(item);
+                  },
+                ))
+                    .toList(),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -169,25 +206,45 @@ class ProductFormScreen extends StatelessWidget {
       title: LangKeys.productImages.tr,
       child: Column(
         children: [
-          OutlinedButton.icon(
-            onPressed: controller.pickProductImages,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: const Text("Add Images"),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: controller.pickProductImages,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: Text(LangKeys.addImages.tr),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 45)),
+                ),
+              ),
+              const SizedBox(width: kDefaultPadding / 2),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    controller.openUrlDialog();
+                    Get.dialog(_UrlInputDialog(controller: controller));
+                  },
+                  icon: const Icon(Icons.link),
+                  label: Text(LangKeys.addImageUrls.tr),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 45)),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: kDefaultPadding),
           Obx(() {
             if (controller.productImages.isEmpty) {
-              return const SizedBox(
+              return SizedBox(
                 height: 100,
-                child: Center(child: Text("No images selected.", style: TextStyle(color: kSecondaryTextColor))),
+                child: Center(
+                    child: Text(LangKeys.noImagesSelected.tr,
+                        style: const TextStyle(color: kSecondaryTextColor))),
               );
             }
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 4,
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
               ),
@@ -200,8 +257,10 @@ class ProductFormScreen extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(kDefaultRadius / 2),
                       child: imageSource.data is String
-                          ? Image.network(imageSource.data as String, fit: BoxFit.cover)
-                          : Image.memory(imageSource.data as Uint8List, fit: BoxFit.cover),
+                          ? Image.network(imageSource.data as String,
+                          fit: BoxFit.cover)
+                          : Image.memory(imageSource.data as Uint8List,
+                          fit: BoxFit.cover),
                     ),
                     Positioned(
                       top: 4,
@@ -211,7 +270,8 @@ class ProductFormScreen extends StatelessWidget {
                         child: const CircleAvatar(
                           radius: 12,
                           backgroundColor: Colors.black54,
-                          child: Icon(Icons.close, color: Colors.white, size: 16),
+                          child:
+                          Icon(Icons.close, color: Colors.white, size: 16),
                         ),
                       ),
                     )
@@ -234,15 +294,18 @@ class ProductFormScreen extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: controller.variantForms.length,
-            itemBuilder: (ctx, index) => _buildVariantForm(controller, index),
-            separatorBuilder: (ctx, index) => const Divider(height: kDefaultPadding * 2),
+            itemBuilder: (ctx, index) =>
+                _buildVariantForm(controller, index),
+            separatorBuilder: (ctx, index) =>
+            const Divider(height: kDefaultPadding * 2),
           )),
           const SizedBox(height: kDefaultPadding),
           OutlinedButton.icon(
             icon: const Icon(Icons.add),
             label: Text(LangKeys.addVariant.tr),
             onPressed: controller.addVariantForm,
-            style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
+            style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 45)),
           ),
         ],
       ),
@@ -253,13 +316,18 @@ class ProductFormScreen extends StatelessWidget {
     final formState = controller.variantForms[index];
     return Container(
       padding: const EdgeInsets.all(kDefaultPadding / 2),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(kDefaultRadius),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Variant ${index + 1}", style: Get.textTheme.titleMedium),
+              Text("${LangKeys.variant.tr} ${index + 1}",
+                  style: Get.textTheme.titleMedium),
               if (controller.variantForms.length > 1)
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: kErrorColor),
@@ -272,7 +340,7 @@ class ProductFormScreen extends StatelessWidget {
             controller: formState.attributesController,
             decoration: InputDecoration(
               labelText: LangKeys.variantAttributes.tr,
-              hintText: 'e.g., Color:Red, Size:XL',
+              hintText: LangKeys.attributesHint.tr,
             ),
           ),
           const SizedBox(height: kDefaultPadding),
@@ -282,17 +350,21 @@ class ProductFormScreen extends StatelessWidget {
                 child: TextFormField(
                   controller: formState.priceController,
                   decoration: InputDecoration(labelText: LangKeys.price.tr),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) => v!.isEmpty ? LangKeys.fieldRequired.tr : null,
+                  keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+                  validator: (v) =>
+                  v!.isEmpty ? LangKeys.fieldRequired.tr : null,
                 ),
               ),
               const SizedBox(width: kDefaultPadding),
               Expanded(
                 child: TextFormField(
                   controller: formState.stockController,
-                  decoration: InputDecoration(labelText: LangKeys.stockQuantity.tr),
+                  decoration:
+                  InputDecoration(labelText: LangKeys.stockQuantity.tr),
                   keyboardType: TextInputType.number,
-                  validator: (v) => v!.isEmpty ? LangKeys.fieldRequired.tr : null,
+                  validator: (v) =>
+                  v!.isEmpty ? LangKeys.fieldRequired.tr : null,
                 ),
               ),
             ],
@@ -304,6 +376,78 @@ class ProductFormScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _UrlInputDialog extends StatelessWidget {
+  final ProductFormController controller;
+  const _UrlInputDialog({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(LangKeys.enterImageUrls.tr),
+      content: SizedBox(
+        width: Get.width * 0.5,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: Obx(
+                    () => ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: controller.urlControllers.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: controller.urlControllers[index],
+                              decoration: InputDecoration(
+                                labelText:
+                                "${LangKeys.imageUrl.tr} ${index + 1}",
+                                hintText: LangKeys.imageUrlHint.tr,
+                              ),
+                            ),
+                          ),
+                          if (controller.urlControllers.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline,
+                                  color: kErrorColor),
+                              onPressed: () => controller.removeUrlField(index),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: kDefaultPadding),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: controller.addUrlField,
+                icon: const Icon(Icons.add),
+                label: Text(LangKeys.addUrl.tr),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: Get.back,
+          child: Text(LangKeys.cancel.tr),
+        ),
+        ElevatedButton(
+          onPressed: controller.addImageUrlsFromDialog,
+          child: Text(LangKeys.addImages.tr),
+        ),
+      ],
     );
   }
 }

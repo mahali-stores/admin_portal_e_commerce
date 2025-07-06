@@ -22,6 +22,7 @@ class LangKeys {
   static const orders = "orders";
   static const categories = "categories";
   static const brands = "brands";
+  static const brand = "brand";
   static const sales = "sales";
   static const error = "error";
   static const success = "success";
@@ -108,6 +109,33 @@ class LangKeys {
   static const sku = "sku";
   static const variantImages = "variant_images";
   static const noProductsFound = "no_products_found";
+  static const loadingProductData = "loading_product_data";
+  static const failedToLoadProductData = "failed_to_load_product_data";
+  static const validationError = "validation_error";
+  static const productMustHaveVariant = "product_must_have_variant";
+  static const savingProduct = "saving_product";
+  static const productSavedSuccess = "product_saved_success";
+  static const failedToSaveProduct = "failed_to_save_product";
+  static const failedToFetchProducts = "failed_to_fetch_products";
+  static const deletingProduct = "deleting_product";
+  static const productDeletedSuccess = "product_deleted_success";
+  static const failedToDeleteProduct = "failed_to_delete_product";
+  static const basicInformation = "basic_information";
+  static const status = "status";
+  static const featuredProduct = "featured_product";
+  static const categorization = "categorization";
+  static const addImages = "add_images";
+  static const addImageUrls = "add_image_urls";
+  static const noImagesSelected = "no_images_selected";
+  static const variant = "variant";
+  static const attributesHint = "attributes_hint";
+  static const allBrands = "all_brands";
+  static const allCategories = "all_categories";
+  static const noBrand = "no_brand";
+  static const featured = "featured";
+  static const productImage = "product_image";
+  static const enterImageUrls = "enter_image_urls";
+  static const oneUrlPerLine = "one_url_per_line";
 
   // Image Upload
   static const uploadImage = "upload_image";
@@ -136,4 +164,18 @@ class LangKeys {
   static const selectProducts = "select_products";
   static const selectCategories = "select_categories";
   static const noSalesFound = "no_sales_found";
+  static const addUrl = "add_url";
+  static const saleDetails = "sale_details";
+  static const durationAndStatus = "duration_and_status";
+  static const applicability = "applicability";
+  static const failedToFetchSales = "failed_to_fetch_sales";
+  static const saleDeletedSuccess = "sale_deleted_success";
+  static const failedToDeleteSale = "failed_to_delete_sale";
+  static const saleSavedSuccess = "sale_saved_success";
+  static const failedToSaveSale = "failed_to_save_sale";
+  static const statusActive = "status_active";
+  static const statusExpired = "status_expired";
+  static const statusUpcoming = "status_upcoming";
+  static const discount = "discount";
+  static const period = "period";
 }

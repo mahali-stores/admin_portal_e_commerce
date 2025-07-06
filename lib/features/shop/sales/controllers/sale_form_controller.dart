@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/lang_keys.dart';
+import '../../../../core/shared_widgets/loading_overlay.dart';
 import '../../brands/controllers/brands_controller.dart';
 import '../../categories/controllers/categories_controller.dart';
 import '../../models/sale_model.dart';
@@ -18,7 +19,7 @@ class SaleFormController extends GetxController {
   final discountController = TextEditingController();
 
   // Reactive variables for state management
-  final RxBool isLoading = false.obs;
+  final RxBool isLoading = false.obs; // FIX: Added isLoading state
   final Rx<DateTime> startDate = DateTime.now().obs;
   final Rx<DateTime> endDate = DateTime.now().add(const Duration(days: 7)).obs;
   final RxBool isActive = true.obs;
@@ -61,6 +62,9 @@ class SaleFormController extends GetxController {
     if (pickedDate != null) {
       if (isStart) {
         startDate.value = pickedDate;
+        if (endDate.value.isBefore(startDate.value)) {
+          endDate.value = startDate.value.add(const Duration(days: 7));
+        }
       } else {
         endDate.value = pickedDate;
       }
@@ -87,7 +91,7 @@ class SaleFormController extends GetxController {
       showItemSelectionDialog(
         context: context,
         title: LangKeys.selectCategories.tr,
-        allItems: categoriesController.categories
+        allItems: categoriesController.flattenedCategoriesForDisplay
             .map((c) => SelectableItem(id: c.id, name: c.name))
             .toList(),
         initiallySelectedIds: targetIds,
@@ -108,13 +112,16 @@ class SaleFormController extends GetxController {
     if (appliesTo.value == 'products') {
       final productsController = Get.find<ProductsController>();
       names = targetIds
-          .map((id) => productsController.allProducts.firstWhereOrNull((p) => p.id == id)?.name)
+          .map((id) =>
+      productsController.allProducts.firstWhereOrNull((p) => p.id == id)?.name)
           .whereType<String>()
           .toList();
     } else {
       final categoriesController = Get.find<CategoriesController>();
       names = targetIds
-          .map((id) => categoriesController.categories.firstWhereOrNull((c) => c.id == id)?.name)
+          .map((id) => categoriesController.categories
+          .firstWhereOrNull((c) => c.id == id)
+          ?.name)
           .whereType<String>()
           .toList();
     }
@@ -124,11 +131,10 @@ class SaleFormController extends GetxController {
   Future<void> saveSale() async {
     if (!formKey.currentState!.validate()) return;
 
-    isLoading.value = true;
+    isLoading.value = true; // FIX: Set loading state to true
     try {
       final saleData = SaleModel(
         id: saleToEdit.value?.id ?? '',
-        // ID is handled by Firestore
         name: nameController.text.trim(),
         description: descriptionController.text.trim(),
         discountPercentage: double.tryParse(discountController.text) ?? 0.0,
@@ -150,14 +156,14 @@ class SaleFormController extends GetxController {
 
       Get.back(result: true);
       Get.snackbar(
-        'Success',
-        'Sale saved successfully',
+        LangKeys.success.tr,
+        LangKeys.saleSavedSuccess.tr, // FIX: Used lang key
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save sale: $e');
+      Get.snackbar(LangKeys.error.tr, '${LangKeys.failedToSaveSale.tr}: $e'); // FIX: Used lang key
     } finally {
-      isLoading.value = false;
+      isLoading.value = false; // FIX: Set loading state to false
     }
   }
 }

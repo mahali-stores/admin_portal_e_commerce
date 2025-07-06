@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/constants/lang_keys.dart';
 import '../../../../core/services/storage/storage_service_interface.dart';
 import '../../../../core/shared_widgets/image_uploader_widget.dart';
 import '../../../../core/shared_widgets/loading_overlay.dart';
+import '../../../../core/utils/validators.dart';
 import '../../brands/controllers/brands_controller.dart';
 import '../../models/brand_model.dart';
 import '../../models/category_model.dart';
@@ -14,7 +16,7 @@ import '../../models/product_model.dart';
 import '../../models/product_variant_model.dart';
 
 class VariantFormState {
-  final String? id; // Null if it's a new variant
+  final String? id;
   final TextEditingController attributesController;
   final TextEditingController priceController;
   final TextEditingController stockController;
@@ -44,6 +46,8 @@ class ProductFormController extends GetxController {
   final RxBool isFeatured = false.obs;
 
   final RxList<ImageSourceData> productImages = <ImageSourceData>[].obs;
+  final RxList<TextEditingController> urlControllers =
+      <TextEditingController>[].obs;
 
   final Rxn<BrandModel> selectedBrand = Rxn<BrandModel>();
   final RxList<CategoryModel> selectedCategories = <CategoryModel>[].obs;
@@ -55,8 +59,6 @@ class ProductFormController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Only set the product to edit from arguments here.
-    // Data loading will happen in onReady.
     if (Get.arguments is ProductModel) {
       productToEdit.value = Get.arguments;
     } else {
@@ -67,40 +69,50 @@ class ProductFormController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    // It's now safe to show dialogs because the widget is rendered.
     if (productToEdit.value != null) {
       _loadProductData(productToEdit.value!);
     }
   }
 
   void _loadProductData(ProductModel product) async {
-    LoadingOverlay.show(message: "Loading product data...");
+    LoadingOverlay.show(message: LangKeys.loadingProductData.tr);
     try {
       nameController.text = product.name;
       descriptionController.text = product.description;
       isFeatured.value = product.isFeatured;
-      productImages.assignAll(product.imageUrls.map((url) => ImageSourceData(url)));
+      productImages
+          .assignAll(product.imageUrls.map((url) => ImageSourceData(url)));
 
       if (product.brandId != null) {
-        final brand = Get.find<BrandsController>().allBrands.firstWhereOrNull((b) => b.id == product.brandId);
+        final brand = Get.find<BrandsController>()
+            .allBrands
+            .firstWhereOrNull((b) => b.id == product.brandId);
         if (brand != null) selectedBrand.value = brand;
       }
 
       await _loadVariants(product.id);
     } catch (e) {
-      Get.snackbar("Error", "Failed to load product data: $e");
+      Get.snackbar(
+          LangKeys.error.tr, "${LangKeys.failedToLoadProductData.tr}: $e");
     } finally {
       LoadingOverlay.hide();
     }
   }
 
   Future<void> _loadVariants(String productId) async {
-    final variantsSnapshot = await _firestore.collection('productVariants').where('productId', isEqualTo: productId).get();
-    final variants = variantsSnapshot.docs.map((doc) => ProductVariantModel.fromSnapshot(doc)).toList();
+    final variantsSnapshot = await _firestore
+        .collection('productVariants')
+        .where('productId', isEqualTo: productId)
+        .get();
+    final variants = variantsSnapshot.docs
+        .map((doc) => ProductVariantModel.fromSnapshot(doc))
+        .toList();
     variantForms.clear();
     for (var variant in variants) {
       final formState = VariantFormState(id: variant.id);
-      formState.attributesController.text = variant.attributes.entries.map((e) => '${e.key}:${e.value}').join(', ');
+      formState.attributesController.text = variant.attributes.entries
+          .map((e) => '${e.key}:${e.value}')
+          .join(', ');
       formState.priceController.text = variant.price.toString();
       formState.stockController.text = variant.stockQuantity.toString();
       formState.skuController.text = variant.sku ?? '';
@@ -110,11 +122,45 @@ class ProductFormController extends GetxController {
 
   Future<void> pickProductImages() async {
     final picker = ImagePicker();
-    final files = await picker.pickMultiImage();
+    final files = await picker.pickMultiImage(imageQuality: 80);
     if (files.isNotEmpty) {
-      final bytesList = await Future.wait(files.map((file) => file.readAsBytes()));
+      final bytesList =
+      await Future.wait(files.map((file) => file.readAsBytes()));
       productImages.addAll(bytesList.map((bytes) => ImageSourceData(bytes)));
     }
+  }
+
+  void openUrlDialog() {
+    for (var c in urlControllers) {
+      c.dispose();
+    }
+    urlControllers.clear();
+    urlControllers.add(TextEditingController());
+  }
+
+  void addUrlField() {
+    urlControllers.add(TextEditingController());
+  }
+
+  void removeUrlField(int index) {
+    if (urlControllers.length > 1) {
+      urlControllers[index].dispose();
+      urlControllers.removeAt(index);
+    }
+  }
+
+  void addImageUrlsFromDialog() {
+    final urls = urlControllers
+        .map((c) => c.text.trim())
+        .where((url) => url.isNotEmpty && Validators.isValidUrl(url));
+
+    productImages.addAll(urls.map((url) => ImageSourceData(url)));
+
+    for (var c in urlControllers) {
+      c.dispose();
+    }
+    urlControllers.clear();
+    Get.back();
   }
 
   void removeProductImage(int index) {
@@ -130,11 +176,12 @@ class ProductFormController extends GetxController {
   Future<void> saveProduct() async {
     if (!formKey.currentState!.validate()) return;
     if (variantForms.isEmpty) {
-      Get.snackbar("Validation Error", "A product must have at least one variant.");
+      Get.snackbar(
+          LangKeys.validationError.tr, LangKeys.productMustHaveVariant.tr);
       return;
     }
 
-    LoadingOverlay.show(message: "Saving product...");
+    LoadingOverlay.show(message: LangKeys.savingProduct.tr);
     try {
       final WriteBatch batch = _firestore.batch();
 
@@ -146,7 +193,8 @@ class ProductFormController extends GetxController {
           String? uploadedUrl = await _storageService.uploadImage(
             path: 'products/',
             imageData: imageSource.data,
-            fileName: 'prod_${DateTime.now().millisecondsSinceEpoch}_${finalImageUrls.length}.jpg',
+            fileName:
+            'prod_${DateTime.now().millisecondsSinceEpoch}_${finalImageUrls.length}.jpg',
           );
           if (uploadedUrl != null) finalImageUrls.add(uploadedUrl);
         }
@@ -158,15 +206,24 @@ class ProductFormController extends GetxController {
         'isFeatured': isFeatured.value,
         'imageUrls': finalImageUrls,
         'brandId': selectedBrand.value?.id,
-        'brand': selectedBrand.value != null ? {'brandId': selectedBrand.value!.id, 'name': selectedBrand.value!.name} : null,
+        'brand': selectedBrand.value != null
+            ? {
+          'brandId': selectedBrand.value!.id,
+          'name': selectedBrand.value!.name
+        }
+            : null,
         'categoryIds': selectedCategories.map((c) => c.id).toList(),
       };
 
       DocumentReference productRef;
       if (productToEdit.value != null) {
-        productRef = _firestore.collection('products').doc(productToEdit.value!.id);
+        productRef =
+            _firestore.collection('products').doc(productToEdit.value!.id);
         batch.update(productRef, productData);
-        final oldVariantsSnapshot = await _firestore.collection('productVariants').where('productId', isEqualTo: productRef.id).get();
+        final oldVariantsSnapshot = await _firestore
+            .collection('productVariants')
+            .where('productId', isEqualTo: productRef.id)
+            .get();
         for (var doc in oldVariantsSnapshot.docs) {
           batch.delete(doc.reference);
         }
@@ -192,10 +249,13 @@ class ProductFormController extends GetxController {
 
       LoadingOverlay.hide();
       Get.back(result: true);
-      Get.snackbar('Success', 'Product saved successfully!', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(LangKeys.success.tr, LangKeys.productSavedSuccess.tr,
+          snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       LoadingOverlay.hide();
-      Get.snackbar('Error', 'Failed to save product: $e', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+          LangKeys.error.tr, '${LangKeys.failedToSaveProduct.tr}: $e',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -220,6 +280,9 @@ class ProductFormController extends GetxController {
   void onClose() {
     for (var form in variantForms) {
       form.dispose();
+    }
+    for (var controller in urlControllers) {
+      controller.dispose();
     }
     nameController.dispose();
     descriptionController.dispose();

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/lang_keys.dart';
 import '../../../../core/constants/ui_constants.dart';
+import '../../../../core/shared_widgets/confirmation_dialog.dart';
 import '../../../../core/utils/app_routes.dart';
 import '../../models/sale_model.dart';
 import '../controllers/sales_controller.dart';
@@ -12,21 +13,17 @@ class SalesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SalesController()); // Ensure controller is initialized
+    final SalesController controller = Get.put(SalesController());
 
     return Scaffold(
       appBar: AppBar(
         title: Text(LangKeys.sales.tr),
-        backgroundColor: kSurfaceColor,
-        elevation: 0,
-        foregroundColor: kTextColor,
       ),
-      body: const Padding(
-        padding: EdgeInsets.all(kDefaultPadding),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: controller.fetchSales,
+        child: const Column(
           children: [
             _Header(),
-            SizedBox(height: kDefaultPadding),
             Expanded(child: _SalesDataView()),
           ],
         ),
@@ -41,33 +38,39 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SalesController controller = Get.find();
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(kDefaultPadding),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                onChanged: (value) => controller.searchQuery.value = value,
-                decoration: InputDecoration(
-                  hintText: LangKeys.search.tr,
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(kDefaultPadding),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              onChanged: (value) => controller.searchQuery.value = value,
+              decoration: InputDecoration(
+                hintText:
+                '${LangKeys.search.tr} ${LangKeys.sales.tr.toLowerCase()}...',
+                prefixIcon: const Icon(Icons.search, size: 20),
               ),
             ),
-            const SizedBox(width: kDefaultPadding),
-            ElevatedButton.icon(
-              onPressed: () {
-                Get.toNamed(AppRoutes.saleForm)?.then((result) {
-                  if (result == true) Get.find<SalesController>().fetchSales();
-                });
-              },
-              icon: const Icon(Icons.add),
-              label: Text(LangKeys.addNew.tr),
+          ),
+          const SizedBox(width: kDefaultPadding),
+          ElevatedButton.icon(
+            onPressed: () {
+              Get.toNamed(AppRoutes.saleForm)?.then((result) {
+                if (result == true) controller.fetchSales();
+              });
+            },
+            icon: const Icon(Icons.add),
+            label: Text(LangKeys.addNew.tr),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: kDefaultPadding,
+                vertical: 14,
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -84,21 +87,25 @@ class _SalesDataView extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (controller.filteredSales.isEmpty) {
-        return Center(child: Text(LangKeys.noSalesFound.tr));
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.search_off,
+                  size: 60, color: kSecondaryTextColor),
+              const SizedBox(height: kDefaultPadding),
+              Text(LangKeys.noSalesFound.tr, style: Get.textTheme.titleMedium),
+            ],
+          ),
+        );
       }
 
       return LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < kMobileBreakpoint) {
-            // Mobile Card View
-            return ListView.builder(
-              itemCount: controller.filteredSales.length,
-              itemBuilder: (context, index) =>
-                  _SaleMobileCard(sale: controller.filteredSales[index]),
-            );
+            return _SaleListView(sales: controller.filteredSales);
           } else {
-            // Desktop Data Table View
-            return const _SaleDesktopTable();
+            return _SaleDesktopTable(sales: controller.filteredSales);
           }
         },
       );
@@ -106,131 +113,156 @@ class _SalesDataView extends StatelessWidget {
   }
 }
 
-class _SaleMobileCard extends StatelessWidget {
-  final SaleModel sale;
-
-  const _SaleMobileCard({required this.sale});
+class _SaleListView extends StatelessWidget {
+  final List<SaleModel> sales;
+  const _SaleListView({required this.sales});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<SalesController>();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(kDefaultPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    sale.name,
-                    style: Get.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                _buildStatusChip(sale.status),
-              ],
-            ),
-            const Divider(height: kDefaultPadding),
-            Text.rich(
-              TextSpan(
-                style: const TextStyle(color: kSecondaryTextColor, height: 1.5),
+    return ListView.separated(
+      padding: const EdgeInsets.all(kDefaultPadding),
+      itemCount: sales.length,
+      separatorBuilder: (context, index) =>
+      const SizedBox(height: kDefaultPadding),
+      itemBuilder: (context, index) {
+        final sale = sales[index];
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () =>
+                Get.toNamed(AppRoutes.saleForm, arguments: sale)?.then((result) {
+                  if (result == true) controller.fetchSales();
+                }),
+            child: Padding(
+              padding: const EdgeInsets.all(kDefaultPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextSpan(
-                    text: '${sale.discountPercentage}% OFF\n',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: kAccentColor,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sale.name,
+                          style: Get.textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      _buildStatusChip(sale.status),
+                    ],
                   ),
-                  TextSpan(
-                    text: 'Applies to: ${sale.appliesTo.capitalizeFirst}\n',
-                  ),
-                  TextSpan(
-                    text:
-                        'Period: ${DateFormat.yMMMd().format(sale.startDate.toDate())} - ${DateFormat.yMMMd().format(sale.endDate.toDate())}',
+                  const SizedBox(height: kDefaultPadding / 2),
+                  if (sale.description != null && sale.description!.isNotEmpty)
+                    Text(sale.description!,
+                        style: Get.textTheme.bodyMedium),
+                  const Divider(height: kDefaultPadding * 1.5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                          style: Get.textTheme.bodyMedium,
+                          children: [
+                            TextSpan(
+                                text:
+                                '${sale.discountPercentage.toStringAsFixed(0)}% OFF\n',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: kAccentColor,
+                                    fontSize: 16)),
+                            TextSpan(
+                                text:
+                                '${LangKeys.period.tr}: ${DateFormat.yMMMd().format(sale.startDate.toDate())} - ${DateFormat.yMMMd().format(sale.endDate.toDate())}'),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined,
+                                color: kPrimaryColor),
+                            tooltip: LangKeys.edit.tr,
+                            onPressed: () => Get.toNamed(AppRoutes.saleForm,
+                                arguments: sale)?.then((result) {
+                              if (result == true) controller.fetchSales();
+                            }),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: kErrorColor),
+                            tooltip: LangKeys.delete.tr,
+                            onPressed: () => showConfirmationDialog(
+                              title: LangKeys.confirmDelete.tr,
+                              message: LangKeys.confirmDeleteItem.trParams({'item': sale.name}),
+                              onConfirm: () => controller.deleteSale(sale.id),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () =>
-                      Get.toNamed(AppRoutes.saleForm, arguments: sale)?.then((
-                        result,
-                      ) {
-                        if (result == true) controller.fetchSales();
-                      }),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: kErrorColor),
-                  onPressed: () => Get.defaultDialog(
-                    title: LangKeys.confirmDelete.tr,
-                    middleText: 'Delete "${sale.name}"?',
-                    onConfirm: () {
-                      controller.deleteSale(sale.id);
-                      Get.back();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _SaleDesktopTable extends StatelessWidget {
-  const _SaleDesktopTable();
+  final List<SaleModel> sales;
+  const _SaleDesktopTable({required this.sales});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<SalesController>();
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: double.infinity,
-        child: PaginatedDataTable(
-          header: Text(LangKeys.sales.tr),
-          rowsPerPage: 10,
-          columns: const [
-            DataColumn(label: Text('Name')),
-            DataColumn(label: Text('Discount')),
-            DataColumn(label: Text('Period')),
-            DataColumn(label: Text('Applies To')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Actions')),
-          ],
-          source: _SaleDataSource(controller: controller),
+    return Padding(
+      padding: const EdgeInsets.all(kDefaultPadding),
+      child: Card(
+        elevation: 2,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: [
+              DataColumn(
+                  label: Text(LangKeys.name.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text(LangKeys.discount.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text(LangKeys.period.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text(LangKeys.appliesTo.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text(LangKeys.status.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text(LangKeys.actions.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold))),
+            ],
+            rows: List.generate(sales.length, (index) {
+              final sale = sales[index];
+              return _buildDataRow(sale, Get.find<SalesController>());
+            }),
+          ),
         ),
       ),
     );
   }
-}
 
-class _SaleDataSource extends DataTableSource {
-  final SalesController controller;
-
-  _SaleDataSource({required this.controller});
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= controller.filteredSales.length) return null;
-    final sale = controller.filteredSales[index];
-
+  DataRow _buildDataRow(SaleModel sale, SalesController controller) {
     return DataRow(
       cells: [
         DataCell(Text(sale.name)),
-        DataCell(Text('${sale.discountPercentage}%')),
+        DataCell(Text('${sale.discountPercentage.toStringAsFixed(0)}%')),
         DataCell(
           Text(
             '${DateFormat.yMMMd().format(sale.startDate.toDate())} - ${DateFormat.yMMMd().format(sale.endDate.toDate())}',
@@ -242,23 +274,23 @@ class _SaleDataSource extends DataTableSource {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blue),
+                icon: const Icon(Icons.edit_outlined),
+                color: kPrimaryColor,
+                tooltip: LangKeys.edit.tr,
                 onPressed: () =>
-                    Get.toNamed(AppRoutes.saleForm, arguments: sale)?.then((
-                      result,
-                    ) {
+                    Get.toNamed(AppRoutes.saleForm, arguments: sale)
+                        ?.then((result) {
                       if (result == true) controller.fetchSales();
                     }),
               ),
               IconButton(
-                icon: const Icon(Icons.delete, color: kErrorColor),
-                onPressed: () => Get.defaultDialog(
+                icon: const Icon(Icons.delete_outline),
+                color: kErrorColor,
+                tooltip: LangKeys.delete.tr,
+                onPressed: () => showConfirmationDialog(
                   title: LangKeys.confirmDelete.tr,
-                  middleText: 'Delete "${sale.name}"?',
-                  onConfirm: () {
-                    controller.deleteSale(sale.id);
-                    Get.back();
-                  },
+                  message: LangKeys.confirmDeleteItem.trParams({'item': sale.name}),
+                  onConfirm: () => controller.deleteSale(sale.id),
                 ),
               ),
             ],
@@ -267,34 +299,30 @@ class _SaleDataSource extends DataTableSource {
       ],
     );
   }
-
-  @override
-  bool get isRowCountApproximate => false;
-
-  @override
-  int get rowCount => controller.filteredSales.length;
-
-  @override
-  int get selectedRowCount => 0;
 }
 
 Widget _buildStatusChip(String status) {
   Color color;
+  String label;
   switch (status) {
     case 'Active':
       color = kAccentColor;
+      label = LangKeys.statusActive.tr;
       break;
     case 'Expired':
       color = kSecondaryTextColor;
+      label = LangKeys.statusExpired.tr;
       break;
     case 'Upcoming':
       color = Colors.orange;
+      label = LangKeys.statusUpcoming.tr;
       break;
     default:
       color = kErrorColor;
+      label = status;
   }
   return Chip(
-    label: Text(status),
+    label: Text(label),
     backgroundColor: color.withOpacity(0.1),
     labelStyle: TextStyle(color: color, fontWeight: FontWeight.bold),
     side: BorderSide.none,
