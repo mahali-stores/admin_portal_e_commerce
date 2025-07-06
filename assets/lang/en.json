@@ -101,5 +101,19 @@
   "total_users": "Total Users",
   "total_products": "Total Products",
   "total_orders": "Total Orders",
-  "view_all": "View All"
+  "view_all": "View All",
+  "failed_to_fetch_categories": "Failed to fetch categories",
+  "deleting_category": "Deleting category...",
+  "category_deleted_success": "Category and all sub-categories deleted successfully",
+  "failed_to_delete_category": "Failed to delete category",
+  "confirm_delete_category_message": "Delete \"{item}\"? This will also delete all its sub-categories.",
+  "parent": "Parent",
+  "image": "Image",
+  "could_not_fetch_parent_categories": "Could not fetch parent categories",
+  "saving_category": "Saving category...",
+  "image_upload_timeout": "Image upload failed or timed out.",
+  "category_updated_success": "Category updated successfully",
+  "category_added_success": "Category added successfully",
+  "failed_to_save_category": "Failed to save category",
+  "category_details": "Category Details"
 }

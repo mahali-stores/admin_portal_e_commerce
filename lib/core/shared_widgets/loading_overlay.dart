@@ -10,19 +10,26 @@ class LoadingOverlay {
       PopScope(
         canPop: false,
         child: Center(
+          // A modern, rounded container for the loading indicator.
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              // Using the app's card color for theme consistency.
+              color: Theme.of(Get.context!).cardColor,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SpinKitFadingCircle(color: kPrimaryColor, size: 50.0),
-                const SizedBox(height: 20),
+                // A more subtle and modern loading animation.
+                const SpinKitThreeBounce(
+                  color: kPrimaryColor,
+                  size: 30.0, // A slightly more compact size.
+                ),
+                const SizedBox(height: 24),
                 Text(
                   message ?? LangKeys.pleaseWait.tr,
-                  style: Get.textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                  style: Get.textTheme.titleSmall, // Adjusted for better balance.
                 ),
               ],
             ),
@@ -30,6 +37,8 @@ class LoadingOverlay {
         ),
       ),
       barrierDismissible: false,
+      // The background of the overlay remains transparent as requested.
+      barrierColor: Colors.black.withOpacity(0.2), // A subtle dimming effect.
     );
   }
 

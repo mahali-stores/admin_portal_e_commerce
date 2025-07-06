@@ -77,6 +77,20 @@ class LangKeys {
   static const categoryImage = "category_image";
   static const categoryDescription = "category_description";
   static const noCategoriesFound = "no_categories_found";
+  static const failedToFetchCategories = "failed_to_fetch_categories";
+  static const deletingCategory = "deleting_category";
+  static const categoryDeletedSuccess = "category_deleted_success";
+  static const failedToDeleteCategory = "failed_to_delete_category";
+  static const confirmDeleteCategoryMessage = "confirm_delete_category_message";
+  static const parent = "parent";
+  static const image = "image";
+  static const couldNotFetchParentCategories = "could_not_fetch_parent_categories";
+  static const savingCategory = "saving_category";
+  static const imageUploadTimeout = "image_upload_timeout";
+  static const categoryUpdatedSuccess = "category_updated_success";
+  static const categoryAddedSuccess = "category_added_success";
+  static const failedToSaveCategory = "failed_to_save_category";
+  static const categoryDetails = "category_details";
 
   // Products
   static const addProduct = "add_product";

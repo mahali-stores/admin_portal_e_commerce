@@ -101,5 +101,19 @@
   "total_users": "إجمالي المستخدمين",
   "total_products": "إجمالي المنتجات",
   "total_orders": "إجمالي الطلبات",
-  "view_all": "عرض الكل"
+  "view_all": "عرض الكل",
+  "failed_to_fetch_categories": "فشل في جلب الفئات",
+  "deleting_category": "جاري حذف الفئة...",
+  "category_deleted_success": "تم حذف الفئة وجميع الفئات الفرعية بنجاح",
+  "failed_to_delete_category": "فشل حذف الفئة",
+  "confirm_delete_category_message": "هل تريد حذف \"{item}\"؟ سيؤدي هذا أيضًا إلى حذف جميع فئاته الفرعية.",
+  "parent": "الفئة الأم",
+  "image": "الصورة",
+  "could_not_fetch_parent_categories": "تعذر جلب الفئات الرئيسية",
+  "saving_category": "جاري حفظ الفئة...",
+  "image_upload_timeout": "فشل تحميل الصورة أو انتهت المهلة.",
+  "category_updated_success": "تم تحديث الفئة بنجاح",
+  "category_added_success": "تمت إضافة الفئة بنجاح",
+  "failed_to_save_category": "فشل حفظ الفئة",
+  "category_details": "تفاصيل الفئة"
 }

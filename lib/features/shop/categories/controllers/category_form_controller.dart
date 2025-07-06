@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/lang_keys.dart';
 import '../../../../core/constants/ui_constants.dart';
 import '../../../../core/services/storage/storage_service_interface.dart';
 import '../../../../core/shared_widgets/image_uploader_widget.dart';
@@ -15,45 +16,63 @@ class CategoryFormController extends GetxController {
   final IStorageService _storageService = Get.find<IStorageService>();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // Form field controllers
   final nameController = TextEditingController();
   final descriptionController = TextEditingController();
-  final urlController = TextEditingController(); // Manages the URL text field directly
+  final urlController = TextEditingController();
 
-  // State management
-  final Rxn<ImageSourceData> selectedImageFile = Rxn<ImageSourceData>(); // Only for file uploads
+  final Rxn<ImageSourceData> selectedImageFile = Rxn<ImageSourceData>();
   final Rxn<String> parentCategoryId = Rxn<String>();
-  final RxList<CategoryModel> availableParentCategories = <CategoryModel>[].obs;
+  final RxList<CategoryModel> availableParentCategories =
+      <CategoryModel>[].obs;
   Rx<CategoryModel?> categoryToEdit = Rx<CategoryModel?>(null);
 
   @override
   void onInit() {
     super.onInit();
-    fetchParentCategories();
     if (Get.arguments is CategoryModel) {
       categoryToEdit.value = Get.arguments;
       _loadCategoryData(categoryToEdit.value!);
     }
+    fetchParentCategories();
   }
 
   Future<void> fetchParentCategories() async {
     try {
-      final snapshot = await _firestore.collection('categories').orderBy('name').get();
-      final categories = snapshot.docs.map((doc) => CategoryModel.fromSnapshot(doc)).toList();
+      final snapshot =
+      await _firestore.collection('categories').orderBy('name').get();
+      final categories =
+      snapshot.docs.map((doc) => CategoryModel.fromSnapshot(doc)).toList();
       if (categoryToEdit.value != null) {
-        categories.removeWhere((cat) => cat.id == categoryToEdit.value!.id);
+        // Prevent a category from being its own parent or child of its children
+        final descendants = await _getDescendants(categoryToEdit.value!.id, categories);
+        categories.removeWhere((cat) => cat.id == categoryToEdit.value!.id || descendants.contains(cat.id));
       }
       availableParentCategories.assignAll(categories);
     } catch (e) {
-      Get.snackbar('Error', 'Could not fetch parent categories: $e');
+      Get.snackbar(
+          LangKeys.error.tr, '${LangKeys.couldNotFetchParentCategories.tr}: $e');
     }
   }
 
+  Future<Set<String>> _getDescendants(String categoryId, List<CategoryModel> allCategories) async {
+    Set<String> descendants = {};
+    List<String> toProcess = [categoryId];
+    while(toProcess.isNotEmpty) {
+      String currentId = toProcess.removeAt(0);
+      final children = allCategories.where((cat) => cat.parentCategoryId == currentId);
+      for (var child in children) {
+        if (descendants.add(child.id)) {
+          toProcess.add(child.id);
+        }
+      }
+    }
+    return descendants;
+  }
+
   void _loadCategoryData(CategoryModel category) {
-    nameController.text = category.name.replaceAll('— ', '');
+    nameController.text = category.name.replaceAll(RegExp(r'—\s*'), '');
     descriptionController.text = category.description ?? '';
     if (category.imageUrl != null && category.imageUrl!.isNotEmpty) {
-      selectedImageFile.value = ImageSourceData(category.imageUrl);
       urlController.text = category.imageUrl!;
     }
     parentCategoryId.value = category.parentCategoryId;
@@ -75,27 +94,28 @@ class CategoryFormController extends GetxController {
       return;
     }
 
-    LoadingOverlay.show(message: "Saving category...");
+    LoadingOverlay.show(message: LangKeys.savingCategory.tr);
     try {
-      String finalImageUrl = '';
+      String finalImageUrl = categoryToEdit.value?.imageUrl ?? '';
       final imageFile = selectedImageFile.value;
       final manualUrl = urlController.text.trim();
 
       if (imageFile != null && imageFile.data is Uint8List) {
-        // Priority 1: An image file has been uploaded.
         final imageData = imageFile.data as Uint8List;
-        String? uploadedUrl = await _storageService.uploadImage(
+        String? uploadedUrl = await _storageService
+            .uploadImage(
             path: 'categories/',
             imageData: imageData,
-            fileName: 'category_${DateTime.now().millisecondsSinceEpoch}.jpg'
-        ).timeout(const Duration(seconds: 30));
+            fileName:
+            'category_${DateTime.now().millisecondsSinceEpoch}.jpg')
+            .timeout(const Duration(seconds: 30));
 
-        if (uploadedUrl == null) throw Exception("Image upload failed or timed out.");
+        if (uploadedUrl == null) throw Exception(LangKeys.imageUploadTimeout.tr);
         finalImageUrl = uploadedUrl;
-
       } else if (manualUrl.isNotEmpty && Validators.isValidUrl(manualUrl)) {
-        // Priority 2: No file, but a valid URL has been entered manually.
         finalImageUrl = manualUrl;
+      } else if (manualUrl.isEmpty && imageFile == null) {
+        finalImageUrl = '';
       }
 
       final categoryData = {
@@ -106,7 +126,10 @@ class CategoryFormController extends GetxController {
       };
 
       if (categoryToEdit.value != null) {
-        await _firestore.collection('categories').doc(categoryToEdit.value!.id).update(categoryData);
+        await _firestore
+            .collection('categories')
+            .doc(categoryToEdit.value!.id)
+            .update(categoryData);
       } else {
         await _firestore.collection('categories').add(categoryData);
       }
@@ -114,15 +137,16 @@ class CategoryFormController extends GetxController {
       LoadingOverlay.hide();
       Get.back(result: true);
       Get.snackbar(
-          'Success',
-          categoryToEdit.value != null ? 'Category updated' : 'Category added',
+          LangKeys.success.tr,
+          categoryToEdit.value != null
+              ? LangKeys.categoryUpdatedSuccess.tr
+              : LangKeys.categoryAddedSuccess.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: kAccentColor,
-          colorText: Colors.white
-      );
+          colorText: Colors.white);
     } catch (e) {
       LoadingOverlay.hide();
-      Get.snackbar('Error', 'Failed to save category: $e',
+      Get.snackbar(LangKeys.error.tr, '${LangKeys.failedToSaveCategory.tr}: $e',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: kErrorColor,
           colorText: Colors.white);
