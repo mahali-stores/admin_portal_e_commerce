@@ -1,3 +1,4 @@
+import 'package:admin_portal_e_commerce/features/orders/screens/orders_screen.dart';
 import 'package:get/get.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String productForm = '/product-form'; // Add/Edit product
   static const String sales = '/sales';
   static const String saleForm = '/sale-form';
+  static const String orders = '/orders';
 
   static final routes = [
     GetPage(name: splash, page: () => const SplashScreen()),
@@ -39,5 +41,6 @@ class AppRoutes {
     GetPage(name: productForm, page: () => const ProductFormScreen()),
     GetPage(name: sales, page: () => const SalesScreen()),
     GetPage(name: saleForm, page: () => const SaleFormScreen()),
+    GetPage(name: orders, page: () => const AdminOrdersScreen()),
   ];
 }

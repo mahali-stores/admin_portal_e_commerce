@@ -56,8 +56,8 @@ class HomeDrawer extends StatelessWidget {
           _buildDrawerItem(
             icon: Icons.receipt_long,
             title: LangKeys.orders.tr,
-            onTap: () =>
-                Get.snackbar('Info', 'Orders page not implemented yet.'),
+            // --- UPDATED: Navigate to the new orders route ---
+            onTap: () => Get.toNamed(AppRoutes.orders),
           ),
           const Divider(),
           ListTile(

@@ -160,5 +160,6 @@
   "period": "الفترة",
   "add_variant_image": "إضافة صورة المتغير",
   "attribute_value": "قيمة المتغير",
-  "attribute_name": "اسم المتغير"
+  "attribute_name": "اسم المتغير",
+  "no_orders_found": "لم يتم العثور على أي طلبات"
 }

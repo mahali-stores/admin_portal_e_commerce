@@ -181,4 +181,6 @@ class LangKeys {
   static const addVariantImage = "add_variant_image";
   static const attributeValue = "attribute_value";
   static const attributeName = "attribute_name";
+  static const update = "update";
+  static const noOrdersFound = "no_orders_found";
 }

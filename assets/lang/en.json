@@ -160,5 +160,6 @@
   "period": "Period",
   "add_variant_image": "Add Variant Image",
   "attribute_value": "Variant Value",
-  "attribute_name": "Variant Name"
+  "attribute_name": "Variant Name",
+  "no_orders_found": "No Orders found"
 }

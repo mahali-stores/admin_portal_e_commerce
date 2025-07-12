@@ -64,7 +64,8 @@ class HomeScreen extends StatelessWidget {
                       title: LangKeys.totalOrders.tr,
                       count: controller.orderCount.value.toString(),
                       color: Colors.orange,
-                      onTap: () => Get.snackbar('Info', 'Orders page not implemented yet.'),
+                      // --- UPDATED: Navigate to the new orders route ---
+                      onTap: () => Get.toNamed(AppRoutes.orders),
                     ),
                   ],
                 ),
