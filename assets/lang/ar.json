@@ -157,5 +157,8 @@
   "status_expired": "منتهي الصلاحية",
   "status_upcoming": "قادم",
   "discount": "الخصم",
-  "period": "الفترة"
+  "period": "الفترة",
+  "add_variant_image": "إضافة صورة المتغير",
+  "attribute_value": "قيمة المتغير",
+  "attribute_name": "اسم المتغير"
 }

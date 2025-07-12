@@ -178,4 +178,7 @@ class LangKeys {
   static const statusUpcoming = "status_upcoming";
   static const discount = "discount";
   static const period = "period";
+  static const addVariantImage = "add_variant_image";
+  static const attributeValue = "attribute_value";
+  static const attributeName = "attribute_name";
 }

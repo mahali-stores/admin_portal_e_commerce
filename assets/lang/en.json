@@ -157,5 +157,8 @@
   "status_expired": "Expired",
   "status_upcoming": "Upcoming",
   "discount": "Discount",
-  "period": "Period"
+  "period": "Period",
+  "add_variant_image": "Add Variant Image",
+  "attribute_value": "Variant Value",
+  "attribute_name": "Variant Name"
 }
