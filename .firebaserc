@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "e-commerce-test-be97f"
+  },
+  "targets": {
+    "e-commerce-test-be97f": {
+      "hosting": {
+        "admin": [
+          "e-commerce-test-be97f"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

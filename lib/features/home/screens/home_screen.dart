@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/constants/lang_keys.dart';
+import 'package:intl/intl.dart';
+import '../../../core/constants/lang_keys.dart' show LangKeys;
+import '../../../core/constants/ui_constants.dart';
 import '../../../core/shared_widgets/language_switcher_widget.dart';
-import '../../../core/utils/app_routes.dart';
+import '../widgets/animated_stat_card.dart';
+import '../widgets/order_status_pie_chart.dart';
+import '../widgets/sales_line_chart.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/home_drawer.dart';
-import '../widgets/stat_card_widget.dart';
+import '../widgets/top_products_list.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,6 +17,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = Get.put(HomeController());
+    final NumberFormat currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '₪');
+
     return Scaffold(
       appBar: AppBar(
         title: Text(LangKeys.dashboard.tr),
@@ -27,53 +33,110 @@ class HomeScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         return RefreshIndicator(
-          onRefresh: () => controller.fetchStats(),
+          onRefresh: () => controller.fetchAllDashboardData(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(kDefaultPadding),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  LangKeys.welcomeAdmin.tr,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 24),
+                // --- Animated Stat Cards ---
                 GridView.count(
                   crossAxisCount: context.isPhone ? 2 : 4,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  crossAxisSpacing: kDefaultPadding,
+                  mainAxisSpacing: kDefaultPadding,
+                  childAspectRatio: context.isPhone ? 1.2 : 1.5,
                   children: [
-                    StatCard(
-                      icon: Icons.people,
-                      title: LangKeys.totalUsers.tr,
-                      count: controller.userCount.value.toString(),
-                      color: Colors.blue,
-                      onTap: () => Get.toNamed(AppRoutes.users),
-                    ),
-                    StatCard(
-                      icon: Icons.shopping_bag,
-                      title: LangKeys.totalProducts.tr,
-                      count: controller.productCount.value.toString(),
+                    AnimatedStatCard(
+                      icon: Icons.attach_money,
+                      title: 'Total Revenue',
+                      end: controller.totalRevenue.value,
                       color: Colors.green,
-                      onTap: () => Get.toNamed(AppRoutes.products),
+                      formatter: (val) => currencyFormat.format(val),
                     ),
-                    StatCard(
+                    AnimatedStatCard(
                       icon: Icons.receipt_long,
-                      title: LangKeys.totalOrders.tr,
-                      count: controller.orderCount.value.toString(),
+                      title: 'Total Sales',
+                      end: controller.orderCount.value.toDouble(),
                       color: Colors.orange,
-                      // --- UPDATED: Navigate to the new orders route ---
-                      onTap: () => Get.toNamed(AppRoutes.orders),
+                    ),
+                    AnimatedStatCard(
+                      icon: Icons.people,
+                      title: 'Total Users',
+                      end: controller.userCount.value.toDouble(),
+                      color: Colors.blue,
+                    ),
+                    AnimatedStatCard(
+                      icon: Icons.shopping_bag,
+                      title: 'Total Products',
+                      end: controller.productCount.value.toDouble(),
+                      color: Colors.purple,
                     ),
                   ],
+                ),
+                const SizedBox(height: kDefaultPadding * 1.5),
+
+                // --- Charts and Top Products ---
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    bool isMobile = constraints.maxWidth < kMobileBreakpoint;
+                    if (isMobile) {
+                      return Column(
+                        children: [
+                          _buildChartCard(title: 'Weekly Sales', child: SalesLineChart(salesData: controller.weeklySalesData)),
+                          const SizedBox(height: kDefaultPadding),
+                          _buildChartCard(title: 'Order Status', child: OrderStatusPieChart(statusData: controller.orderStatusDistribution)),
+                          const SizedBox(height: kDefaultPadding),
+                          _buildChartCard(title: 'Top Selling Products', child: TopProductsList(products: controller.topSellingProducts)),
+                        ],
+                      );
+                    } else {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _buildChartCard(title: 'Weekly Sales', child: SalesLineChart(salesData: controller.weeklySalesData)),
+                          ),
+                          const SizedBox(width: kDefaultPadding),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              children: [
+                                _buildChartCard(title: 'Order Status', child: OrderStatusPieChart(statusData: controller.orderStatusDistribution)),
+                                const SizedBox(height: kDefaultPadding),
+                                _buildChartCard(title: 'Top Selling Products', child: TopProductsList(products: controller.topSellingProducts)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildChartCard({required String title, required Widget child}) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(kDefaultPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Get.textTheme.titleLarge),
+            const SizedBox(height: kDefaultPadding),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }

@@ -60,10 +60,44 @@ class AdminOrdersController extends GetxController {
     filteredOrders.assignAll(result);
   }
 
-  /// Updates the status of a specific order.
+  /// Updates the status of a specific order and adjusts stock levels accordingly.
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
     try {
-      await _firestore.collection('orders').doc(orderId).update({'status': newStatus});
+      await _firestore.runTransaction((transaction) async {
+        final orderRef = _firestore.collection('orders').doc(orderId);
+        final orderSnapshot = await transaction.get(orderRef);
+
+        if (!orderSnapshot.exists) {
+          throw Exception("Order not found!");
+        }
+
+        final order = OrderModel.fromSnapshot(orderSnapshot);
+        final oldStatus = order.status;
+
+        // --- Stock Management Logic ---
+        final fulfilledStates = ['shipped', 'delivered'];
+        final isMovingToFulfilled = fulfilledStates.contains(newStatus.toLowerCase());
+        final wasAlreadyFulfilled = fulfilledStates.contains(oldStatus.toLowerCase());
+
+        // Only decrement stock if moving to a "fulfilled" state from a "non-fulfilled" state.
+        if (isMovingToFulfilled && !wasAlreadyFulfilled) {
+          for (final item in order.items) {
+            final variantRef = _firestore.collection('productVariants').doc(item.variantId);
+            final variantSnapshot = await transaction.get(variantRef);
+
+            if (variantSnapshot.exists) {
+              final currentStock = (variantSnapshot.data()?['stockQuantity'] as int?) ?? 0;
+              final newStock = currentStock - item.quantity;
+              transaction.update(variantRef, {'stockQuantity': newStock >= 0 ? newStock : 0});
+            }
+          }
+        }
+        // --- End of Stock Management Logic ---
+
+        // Update the order status itself
+        transaction.update(orderRef, {'status': newStatus});
+      });
+
       Get.snackbar(LangKeys.success.tr, 'Order status updated successfully.');
       await fetchOrders(); // Refresh the list to show the change
     } catch (e) {
